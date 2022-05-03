@@ -1,0 +1,15 @@
+{
+  "name": "controller_local",
+  "version": "1.0.0",
+  "description": "本地控制程序",
+  "main": "index.js",
+  "scripts": {
+    "test": "electron ."
+  },
+  "keywords": [
+    "remote",
+    "control"
+  ],
+  "author": "wzh656",
+  "license": "GPL-3.0"
+}

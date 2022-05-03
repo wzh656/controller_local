@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<!-- Copyright © 2021 by wzh -->
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+		<title>Remote Control-local</title>
+		
+		<style>
+		body{
+			margin: 0;
+			padding: 0;
+		}
+		</style>
+
+		<script src="https://wzh.glitch.me/socket.io/socket.io.js"></script>
+
+		<script src="./js/jquery.min.js"></script>
+
+	</head>
+	<body>
+		<h1>Remote Control-local</h1>
+		<section id="control">
+			<p>Target: <span id="target"></span></p>
+			<p><a href="bilibili.html" target="_blank">Bilibili</a></p>
+			<div>
+				<textarea id="commands" rows="10" style="width: 90vw;"></textarea><br/>
+				<button onclick="runCommands()">Run Commands</button>
+				<button onclick="prerunCommands()">preRun Commands</button>
+			</div>
+			<div>
+				<textarea id="javascript" rows="10" style="width: 90vw;"></textarea><br/>
+				<button onclick="runJavascript()">Run Javascript</button>
+				<button onclick="prerunJavascript()">preRun Javascript</button>
+			</div>
+			<div>
+				<textarea id="electron" rows="10" style="width: 90vw;"></textarea><br/>
+				<button onclick="runElectron()">Run Electron</button>
+				<button onclick="prerunElectron()">preRun Electron</button>
+			</div>
+			<hr/>
+			<div id="output"></div>
+		</section>
+		<hr/>
+		<section>
+			<h2 style="text-align: center;">Help</h2>
+
+			<h3>Commands</h3>
+			<h4>Key:</h4>
+			<ul>
+				<li>setKeyboardDelay {time} 设置按键延时</li>
+				<li>keyTap {key} [{特殊键}] 按键</li>
+				<li>keyToggle {key} {down/up} [{特殊键}] 按下/抬起按键</li>
+				<li>typeString {text} 输入文字</li>
+				<li>typeStringDelayed {time} 输入延时</li>
+			</ul>
+			<h4>Key:</h4>
+			<ul>
+				<li>typeStringDelayed {time} 设置鼠标延时</li>
+				<li>moveMouse {x} {y} 设置鼠标位置</li>
+				<li>moveMouseDelta {dx} {dy} 相对位移鼠标</li>
+				<li>moveMouseSmooth {x} {y} 平滑地移动鼠标</li>
+				<li>moveMouseSmoothDelta {dx} {dy} 平滑地相对移动鼠标</li>
+				<li>mouseClick [{left,right,middle}] [{true:双击}] 点击鼠标</li>
+				<li>mouseToggle {down/up} [{left,right,middle}] 按下/抬起鼠标</li>
+				<li>dragMouse {x} {y} 拖动鼠标</li>
+				<li>dragMouseDelta {dx} {dy} 相对拖动鼠标</li>
+				<li>getMousePos 获取鼠标位置</li>
+				<li>scrollMouse {x} {y} 鼠标滚轮</li>
+			</ul>
+			<h4>Screen:</h4>
+			<ul>
+				<li>getPixelColor {x} {y} 获取像素颜色</li>
+				<li>getScreenSize 获取屏幕大小</li>
+				<li>screenCapture [{x}] [{y}] [{width}] [{height}] 截屏并返回像素</li>
+				<li>screenshot 截屏并返回base64图片</li>
+			</ul>
+			<h4>Code:</h4>
+			<ul>
+				<li>nodejs {code} 在robot.js环境运行Node.js代码</li>
+				<li>msg {msg} 消息弹窗</li>
+				<li>vbscript {code} 运行vbscript</li>
+				<li>jscript {code} 运行jscript</li>
+			</ul>
+			<h4>System:</h4>
+			<ul>
+				<li>di 发出滴的一声</li>
+				<li>search 打开资源管理器搜索</li>
+				<li>browser 打开默认浏览器</li>
+				<li>mute 静音</li>
+				<li>volumeDown 音量下调</li>
+				<li>volumeUp 音量上调</li>
+				<li>next 下一首</li>
+				<li>last 上一首</li>
+				<li>stop 停止播放</li>
+				<li>pause 暂停</li>
+				<li>email 打开默认邮件程序</li>
+				<li>player 打开默认音乐播放器</li>
+				<li>computer 打开我的电脑</li>
+				<li>calculator 打开计算器</li>
+				<li>pressKeycode 按键值(16进制)按键</li>
+			</ul>
+			<h4>Internet:</h4>
+			<ul>
+				<li>download [url] [path] 下载文件</li>
+			</ul>
+			<hr/>
+
+			<h3>Javascript</h3>
+			<ul>
+				<li>request {url} {dataType} 发送GET请求</li>
+				<li>upload {本地path} {服务器path} 上传文本文件(POST)</li>
+				<li>bilibili_search {keyword} B站搜索</li>
+				<li>bilibili_download {BVid} {path} B站视频下载</li>
+				<li>speech {text} 播放文本</li>
+				<li>piano {sound} 播放钢琴</li>
+				<li>其他： 在electron的前端环境运行Javascript代码</li>
+				<li>
+					send(name, ...data) 给服务器发送消息<br/>
+					remote_type {type} name //身份<br/>
+					remote_output id data //命令执行输出<br/>
+				</li>
+				<li>
+					ipcRenderer.send(name, ...data) 给后端发送消息<br/>
+					name 获取name<br/>
+					readfile {path} //读取文件<br/>
+					download {url} {path} //下载文件<br/>
+					electron {code} //运行Electron命令<br/>
+					commands {code} //运行Commands命令<br/>
+				</li>
+				<li>
+					async runCommands(code); //运行Commands .cmd<br/>
+					async runJs(code); //运行Javascript .js<br/>
+					async runElectron(code); //运行Electron .elec<br/>
+				</li>
+			</ul>
+			<hr/>
+
+			<h3>Electron</h3>
+			<ul>
+				<li>open {url} [width=800] [height=600] [fullscreen] 打开窗新口</li>
+				<li>closeall 关闭全部新建窗口</li>
+				<li>在electron的后端环境运行Node.js代码</li>
+				<li>win.show() 显示前端窗口</li>
+				<li>win.hide() 隐藏前端窗口</li>
+				<li>win.close() 关闭前端窗口</li>
+				<li>download {url} {path} 下载文件</li>
+				<li>fs.readFileSync(path).toString() 同步读取文本文件</li>
+				<li>
+					event.sender.send(name, ...data) 给前端发送消息<br/>
+					readfile_output data //readfile输出<br/>
+					download_output data //download输出<br/>
+					electron_output data //electron执行输出<br/>
+					commands_output data //electron执行输出<br/>
+				</li>
+				<li>
+					async runCommands(code); //运行Commands .cmd<br/>
+					async runJs(code); //运行Javascript .js<br/>
+					async runElectron(code); //运行Electron .elec<br/>
+				</li>
+			</ul>
+		</section>
+
+<script>
+location.getQueryString = function(name){
+	var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+	var r = location.search.substr(1).match(reg);
+	if(r!=null) return decodeURIComponent(r[2]);
+};
+const target = location.getQueryString("target"); //目标
+if (target){
+	//$("#choose").hide();
+	$("#control").show();
+	$("#target").html(target);
+}else{
+	$("#choose").show();
+	$("#control").hide();
+}
+
+let ID;
+const socket = io("https://wzh.glitch.me/"); //连接
+function send(name, ...data){
+	console.log("↑", name, data);
+	socket.emit(name, ...data);
+};
+
+if (typeof io == "undefined"){ //未加载socket.io.js
+	$(".state").html("网络错误，请检查网络连接再刷新页面！")
+		.removeClass().addClass("state failed");
+}else{
+	socket.on("connecting", function(data){
+		$(".state").html("连接服务器中……")
+			.removeClass().addClass("state connecting");
+	});
+	socket.on("connect", function(data){
+		send("type", "remote"); //type
+		send("remote_type", true); //控制者
+		$(".state").html("服务器连接成功")
+			.removeClass().addClass("state success");
+	});
+	socket.on("connect_failed", function(data){
+		$(".state").html("服务器连接失败")
+			.removeClass().addClass("state failed");
+	});
+	socket.on("disconnect", function(data){
+		$(".state").html("与服务器连接断开")
+			.removeClass().addClass("state failed");
+	});
+	socket.on("reconnecting", function(data){
+		$(".state").html("重连中……")
+			.removeClass().addClass("state connecting");
+	});
+	socket.on("reconnect", function(data){
+		send("type", "remote"); //type
+		send("remote_type", true); //控制者
+		$(".state").html("服务器重连成功")
+			.removeClass().addClass("state success");
+	});
+	socket.on("reconnect_failed", function(data){
+		$(".state").html("服务器重连失败")
+			.removeClass().addClass("state failed");
+	});
+	socket.on("error", function(data){
+		console.error(data);
+		$(".state").html("服务器连接错误！")
+			.removeClass().addClass("state failed");
+	});
+
+	//分配ID
+	socket.on("remote_assignID", function(data){
+		console.log("↓ remote_assignID", data)
+		ID = data;
+		$(".state").html("你的分配ID：" + ID);
+	});
+
+	//列表
+	socket.on("remote_controlList", function(data){
+		console.log("↓ remote_controlList", data)
+		$("#list").empty();
+		for (const v of data){
+			$("#list").append(
+				$("<li></li>").append(
+					$("<a></a>").html(`${v.name}: ${v.id}`)
+						.attr("href", "?target=" + v.name)
+				)
+			);
+		}
+		if (data.length == 0){
+			$("#list").html("暂无可控制设备");
+		}
+	});
+
+	function runCommands(){
+		send("remote_commands", target, $("#commands").val());
+	}
+	
+	function runJavascript(){
+		send("remote_javascript", target, $("#javascript").val());
+	}
+	
+	function runElectron(){
+		send("remote_electron", target, $("#electron").val());
+	}
+	
+	function prerunCommands(){
+		send("remote_precommands", target, $("#commands").val());
+	}
+
+	function prerunJavascript(){
+		send("remote_prejavascript", target, $("#javascript").val());
+	}
+
+	function prerunElectron(){
+		send("remote_preelectron", target, $("#electron").val());
+	}
+
+	//输出
+	socket.on("remote_output", function(data){
+		console.log("↓ remote_output", data)
+		$("#output").append(
+			$("<p></p>").html("output:" + data)
+		);
+	});
+	
+	socket.on("remote_info", function(data){
+		console.log("↓ remote_info", data)
+		$("#output").append(
+			$("<p></p>").html(`[info] ${data}`).css("color", "blue")
+		);
+	});
+
+	socket.on("remote_error", function(data){
+		console.log("↓ remote_error", data)
+		$("#output").append(
+			$("<p></p>").html(`[error] ${data}`).css("color", "red")
+		);
+	});
+}
+</script>
+	
+	</body>
+</html>
