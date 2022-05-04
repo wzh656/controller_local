@@ -8,7 +8,7 @@ const {exec, execFile} = require("child_process"); //命令
 const fs = require("fs"); //文件处理
 const path = require("path"); //路径处理
 
-let win; // 保存窗口对象的全局引用, 如果不这样做, 当JavaScript对象被当做垃圾回收时，window窗口会自动关闭
+let win, win2; // 保存窗口对象的全局引用, 如果不这样做, 当JavaScript对象被当做垃圾回收时，window窗口会自动关闭
 let newWindows = []; //新建的窗口
 let tray = null; //托盘
 
@@ -20,7 +20,7 @@ fs.mkdirsSync = function(dirname){
 };
 
 const CONFIG = JSON.parse(
-	fs.readFileSync( path.join(__dirname, "../config.json"), "utf-8" )
+	fs.readFileSync( path.join(__dirname, "config.json"), "utf-8" )
 ); //配置文件
 const ID = Math.random().toString(36).substr(2); //随机ID
 const INPUT = path.join(CONFIG.local_path, "input");
@@ -41,16 +41,17 @@ function runCommands(code){
 		const cbFile = path.join(OUTPUT, name+".cb");
 		fs.writeFileSync(file, code);
 		const id = setInterval(()=>{
-			if ( fs.existsSync(cbFile) ){
-				resolve( fs.readFileSync(cbFile) );
-				clearInterval(id);
-			}
+			if ( !fs.existsSync(cbFile) ) return;
+			const result = fs.readFileSync(cbFile).toString();
+			fs.unlinkSync(cbFile);
+			clearInterval(id);
+			resolve(result);
 		}, 0);
 	});
 }
 
 //运行Javascript .js
-function runCommands(code){
+function runJs(code){
 	return new Promise((resolve, reject)=>{
 		if ( !fs.existsSync(INPUT) ) //不存在
 			fs.mkdirsSync(INPUT);
@@ -62,16 +63,17 @@ function runCommands(code){
 		const cbFile = path.join(OUTPUT, name+".cb");
 		fs.writeFileSync(file, code);
 		const id = setInterval(()=>{
-			if ( fs.existsSync(cbFile) ){
-				resolve( fs.readFileSync(cbFile) );
-				clearInterval(id);
-			}
+			if ( !fs.existsSync(cbFile) ) return;
+			const result = fs.readFileSync(cbFile).toString();
+			fs.unlinkSync(cbFile);
+			clearInterval(id);
+			resolve(result);
 		}, 0);
 	});
 }
 
 //运行Electron .elec
-function runCommands(code){
+function runElectron(code){
 	return new Promise((resolve, reject)=>{
 		if ( !fs.existsSync(INPUT) ) //不存在
 			fs.mkdirsSync(INPUT);
@@ -83,10 +85,10 @@ function runCommands(code){
 		const cbFile = path.join(OUTPUT, name+".cb");
 		fs.writeFileSync(file, code);
 		const id = setInterval(()=>{
-			if ( fs.existsSync(cbFile) ){
-				resolve( fs.readFileSync(cbFile) );
-				clearInterval(id);
-			}
+			if ( !fs.existsSync(cbFile) ) return;
+			const result = fs.readFileSync(cbFile).toString();
+			clearInterval(id);
+			resolve(result);
 		}, 0);
 	});
 }
@@ -97,7 +99,7 @@ function runCommands(code){
 function createWindow(){
 	// 创建浏览器窗口
 	win = new BrowserWindow({
-		width: 800,
+		width: 1200,
 		height: 600,
 		autoHideMenuBar: true, //隐藏菜单
 		webPreferences: {
@@ -106,12 +108,27 @@ function createWindow(){
 			contextIsolation: false
 		}
 	});
-	
-	//win.setProgressBar(0.5); //进度条
+
+	win2 = new BrowserWindow({
+		width: 1200,
+		height: 600,
+		autoHideMenuBar: true, //隐藏菜单
+		webPreferences: {
+			nodeIntegration: true,
+			nodeIntegrationInWorker: true,
+			contextIsolation: false
+		}
+	});
+
 	win.setMenu(null); //隐藏菜单
 	win.loadURL(`file://${__dirname}/index.html`); //加载index.html文件
 	win.webContents.openDevTools(); //打开开发工具
-	win.hide(); //隐藏窗口
+
+	win2.setMenu(null); //隐藏菜单
+	win2.loadURL(`file://${__dirname}/bilibili.html`); //加载index.html文件
+	win2.webContents.openDevTools(); //打开开发工具
+
+	win2.webContents.send("local_path", CONFIG.local_path);
 
 	
 	//执行Commands .cmd
@@ -123,14 +140,14 @@ function createWindow(){
 
 	//执行Javascript .js
 	ipcMain.on("javascript", function(event, code){
-		runCommands(code).then(data => {
+		runJs(code).then(data => {
 			event.sender.send("javascript_output", data);
 		});
 	});
 
 	//执行Electron .elec
 	ipcMain.on("electron", function(event, code){
-		runCommands(code).then(data => {
+		runElectron(code).then(data => {
 			event.sender.send("electron_output", data);
 		});
 	});
@@ -142,6 +159,7 @@ function createWindow(){
 		console.log("closed");
 		
 		win = null;
+		app.quit();
 	});
 	
 }

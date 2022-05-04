@@ -4,7 +4,9 @@
   "description": "本地控制程序",
   "main": "index.js",
   "scripts": {
-    "test": "electron ."
+    "test": "electron .",
+    "pack-64": "electron-packager . RemoteControl-local --platform=win32 --arch=x64 --out=./out --asar --icon=./icon.png --app-version=1.0.0 --overwrite --ignore=.git --electron-version 11.0.3 --registry=https://registry.npm.taobao.org/",
+    "pack-32": "electron-packager . RemoteControl-local --platform=win32 --arch=ia32 --out=./out --asar --icon=./icon.png --app-version=1.0.0 --overwrite --ignore=.git --electron-version 11.0.3 --registry=https://registry.npm.taobao.org/"
   },
   "keywords": [
     "remote",

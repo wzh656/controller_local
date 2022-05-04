@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!-- Copyright © 2021 by wzh -->
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+		<title>Remote Control-local-bilibili</title>
+		
+		<style>
+		body{
+			margin: 0;
+			padding: 0;
+		}
+		ul > li:hover{
+			background: #ddd;
+		}
+		ul > li:active{
+			background: #def;
+		}
+		</style>
+
+		<script src="https://wzh.glitch.me/socket.io/socket.io.js"></script>
+
+	</head>
+	<body>
+		<h1>Remote Control-local-bilibili</h1>
+		<div id="search">
+			搜索：<input/><button>Search</button>
+		</div>
+		<section id="result">
+			<h1>搜索结果：</h1>
+			<ul></ul>
+		</section>
+		<button id="refresh">刷新推荐</button>
+		<section id="recommand">
+			<h1>推荐视频：</h1>
+			<ul></ul>
+		</section>
+
+<script>
+//jquery
+window.$ = window.jQuery = require("./js/jquery.min.js");
+
+const {ipcRenderer} = require("electron"); //交互通信
+
+let javascriptCallback = ()=>{};
+function request(...args){
+	return new Promise((resolve, reject)=>{
+		ipcRenderer.send("javascript", args);
+		javascriptCallback = resolve;
+	});
+}
+ipcRenderer.on("javascript_output", function(event, data){
+	javascriptCallback(data);
+});
+
+let PATH;
+ipcRenderer.on("local_path", function(event, data){
+	PATH = data;
+});
+
+function refresh(){
+	request("bilibili_recommand").then(data => {
+		const obj = JSON.parse(JSON.parse(data)[0]);
+		console.log("bilibili_recommand", obj)
+		for (const item of obj.list){
+			$("#recommand > ul").append(
+				$("<li></li>").append(
+					$(`<h4>${item.title}</h4><p>作者：${item.author}</p><p><small>${item.create}</small>&nbsp;&nbsp;<small>点赞：${item.like}</small>&nbsp;&nbsp;<small>投币：${item.coins}</small>&nbsp;&nbsp;<small>BVid:${item.bvid}</small></p>`)
+					.click(()=>go(item.bvid))
+				)
+			);
+		}
+	});
+}
+refresh();
+$("#refresh").click(refresh);
+
+function go(bvid){
+	request("bilibili_download " + bvid, `${local_path}/bilibili/${bvid}.mp4`);
+	
+}
+
+</script>
+	
+	</body>
+</html>

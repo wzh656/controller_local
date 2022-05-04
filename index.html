@@ -15,28 +15,23 @@
 
 		<script src="https://wzh.glitch.me/socket.io/socket.io.js"></script>
 
-		<script src="./js/jquery.min.js"></script>
-
 	</head>
 	<body>
 		<h1>Remote Control-local</h1>
 		<section id="control">
 			<p>Target: <span id="target"></span></p>
 			<p><a href="bilibili.html" target="_blank">Bilibili</a></p>
-			<div>
-				<textarea id="commands" rows="10" style="width: 90vw;"></textarea><br/>
-				<button onclick="runCommands()">Run Commands</button>
-				<button onclick="prerunCommands()">preRun Commands</button>
+			<div class="commands">
+				<textarea rows="10" style="width: 90vw;"></textarea><br/>
+				<button>Run Commands</button>
 			</div>
-			<div>
-				<textarea id="javascript" rows="10" style="width: 90vw;"></textarea><br/>
-				<button onclick="runJavascript()">Run Javascript</button>
-				<button onclick="prerunJavascript()">preRun Javascript</button>
+			<div class="javascript">
+				<textarea rows="10" style="width: 90vw;"></textarea><br/>
+				<button>Run Javascript</button>
 			</div>
-			<div>
-				<textarea id="electron" rows="10" style="width: 90vw;"></textarea><br/>
-				<button onclick="runElectron()">Run Electron</button>
-				<button onclick="prerunElectron()">preRun Electron</button>
+			<div class="electron">
+				<textarea rows="10" style="width: 90vw;"></textarea><br/>
+				<button>Run Electron</button>
 			</div>
 			<hr/>
 			<div id="output"></div>
@@ -162,140 +157,41 @@
 		</section>
 
 <script>
-location.getQueryString = function(name){
-	var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-	var r = location.search.substr(1).match(reg);
-	if(r!=null) return decodeURIComponent(r[2]);
-};
-const target = location.getQueryString("target"); //目标
-if (target){
-	//$("#choose").hide();
-	$("#control").show();
-	$("#target").html(target);
-}else{
-	$("#choose").show();
-	$("#control").hide();
-}
+//jquery
+window.$ = window.jQuery = require("./js/jquery.min.js");
 
-let ID;
-const socket = io("https://wzh.glitch.me/"); //连接
-function send(name, ...data){
-	console.log("↑", name, data);
-	socket.emit(name, ...data);
-};
+const {ipcRenderer} = require("electron"); //交互通信
 
-if (typeof io == "undefined"){ //未加载socket.io.js
-	$(".state").html("网络错误，请检查网络连接再刷新页面！")
-		.removeClass().addClass("state failed");
-}else{
-	socket.on("connecting", function(data){
-		$(".state").html("连接服务器中……")
-			.removeClass().addClass("state connecting");
-	});
-	socket.on("connect", function(data){
-		send("type", "remote"); //type
-		send("remote_type", true); //控制者
-		$(".state").html("服务器连接成功")
-			.removeClass().addClass("state success");
-	});
-	socket.on("connect_failed", function(data){
-		$(".state").html("服务器连接失败")
-			.removeClass().addClass("state failed");
-	});
-	socket.on("disconnect", function(data){
-		$(".state").html("与服务器连接断开")
-			.removeClass().addClass("state failed");
-	});
-	socket.on("reconnecting", function(data){
-		$(".state").html("重连中……")
-			.removeClass().addClass("state connecting");
-	});
-	socket.on("reconnect", function(data){
-		send("type", "remote"); //type
-		send("remote_type", true); //控制者
-		$(".state").html("服务器重连成功")
-			.removeClass().addClass("state success");
-	});
-	socket.on("reconnect_failed", function(data){
-		$(".state").html("服务器重连失败")
-			.removeClass().addClass("state failed");
-	});
-	socket.on("error", function(data){
-		console.error(data);
-		$(".state").html("服务器连接错误！")
-			.removeClass().addClass("state failed");
-	});
 
-	//分配ID
-	socket.on("remote_assignID", function(data){
-		console.log("↓ remote_assignID", data)
-		ID = data;
-		$(".state").html("你的分配ID：" + ID);
-	});
+$(".commands > button").click(function(){
+	ipcRenderer.send("commands", $(".commands textarea").val())
+});
 
-	//列表
-	socket.on("remote_controlList", function(data){
-		console.log("↓ remote_controlList", data)
-		$("#list").empty();
-		for (const v of data){
-			$("#list").append(
-				$("<li></li>").append(
-					$("<a></a>").html(`${v.name}: ${v.id}`)
-						.attr("href", "?target=" + v.name)
-				)
-			);
-		}
-		if (data.length == 0){
-			$("#list").html("暂无可控制设备");
-		}
-	});
+$(".javascript > button").click(function(){
+	ipcRenderer.send("javascript", $(".javascript textarea").val());
+});
 
-	function runCommands(){
-		send("remote_commands", target, $("#commands").val());
-	}
-	
-	function runJavascript(){
-		send("remote_javascript", target, $("#javascript").val());
-	}
-	
-	function runElectron(){
-		send("remote_electron", target, $("#electron").val());
-	}
-	
-	function prerunCommands(){
-		send("remote_precommands", target, $("#commands").val());
-	}
+$(".electron > button").click(function(){
+	ipcRenderer.send("electron", $(".electron textarea").val());
+});
 
-	function prerunJavascript(){
-		send("remote_prejavascript", target, $("#javascript").val());
-	}
+ipcRenderer.on("commands_output", function(event, data){
+	$("#output").append(
+		$("<p></p>").html("output:" + data)
+	);
+});
 
-	function prerunElectron(){
-		send("remote_preelectron", target, $("#electron").val());
-	}
+ipcRenderer.on("javascript_output", function(event, data){
+	$("#output").append(
+		$("<p></p>").html("output:" + data)
+	);
+});
 
-	//输出
-	socket.on("remote_output", function(data){
-		console.log("↓ remote_output", data)
-		$("#output").append(
-			$("<p></p>").html("output:" + data)
-		);
-	});
-	
-	socket.on("remote_info", function(data){
-		console.log("↓ remote_info", data)
-		$("#output").append(
-			$("<p></p>").html(`[info] ${data}`).css("color", "blue")
-		);
-	});
-
-	socket.on("remote_error", function(data){
-		console.log("↓ remote_error", data)
-		$("#output").append(
-			$("<p></p>").html(`[error] ${data}`).css("color", "red")
-		);
-	});
-}
+ipcRenderer.on("electron_output", function(event, data){
+	$("#output").append(
+		$("<p></p>").html("output:" + data)
+	);
+});
 </script>
 	
 	</body>
